@@ -31,7 +31,7 @@ print(encode('izu mma'))
 print(decode([105, 122, 117, 32, 109, 109, 97]))
 
 data_tensor = torch.tensor(encode(data), dtype=torch.long)
-# print(data_tensor.shape, data_tensor.dtype)
+print(data_tensor.shape, data_tensor.dtype)
 print(data_tensor[:1000])
 
 print(decode(data_tensor[:1000]))

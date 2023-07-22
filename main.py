@@ -1,15 +1,11 @@
 import torch
-import numpy
+import numpy as np
 
 # read data from dataset
 with open('assets/fairytale_dataset.txt', 'r', encoding='utf-8') as dataset:
     data = dataset.read()
 
 vocabulary = sorted(list(set(data)))
-
-
-# print('Vocabulary: ', vocabulary)
-# print(len(vocabulary))
 
 
 # map characters to integers using ASCII
@@ -28,14 +24,12 @@ def decode(int_list):
     return ''.join(decoded)
 
 
-print(encode('izu mma'))
-print(decode([105, 122, 117, 32, 109, 109, 97]))
+char_to_int = dict((char, ord(char)) for char in vocabulary)
+int_to_char = dict((ord(char), char) for char in vocabulary)
 
 data_tensor = torch.tensor(encode(data), dtype=torch.long)
-print(data_tensor.shape, data_tensor.dtype)
-print(data_tensor[:1000])
 
-print(decode(data_tensor[:1000]))
+# print(decode(data_tensor[:1000]))
 
 # divide the data into training and validation sets
 divider = int(0.9 * len(data))
@@ -53,12 +47,14 @@ validation_data = data_tensor[divider:]
     [ 1, 2 ]. This goes on until the context is [ 1, 2, 3, 4, 5 ] (i.e the length of the context only goes up to the  
     context_length). 
 '''
-context_length = 8
+context_length = 5
 x = training_data[:context_length]
 y = training_data[1:context_length + 1]
-for i in range(context_length):
-    context = x[:i + 1]
-    target = y[i]
+# for i in range(context_length):
+#     context = x[:i + 1]
+#     target = y[i]
+# print('ccc', context)
+# print('ttt', target)
 
 # batch dimensioning
 '''
@@ -93,15 +89,74 @@ def get_batch(split):
     else:
         batch_data = validation_data
 
-    ix = torch.randint(len(batch_data) - context_length, (batch_size, ))
-    x = torch.stack([batch_data[num: num + context_length] for num in ix])
-    y = torch.stack([batch_data[num + 1: num + context_length + 1] for num in ix])
-    return x, y
+    # generate random indexes from 0 to length of batch_data - context_size
+    # subtracting context_length because if we get an index where the remaining characters are not up to the
+    # context_length then the neural net cannot predict the next character
+    rand_indexes = torch.randint(len(batch_data) - context_length, (batch_size,))
+
+    # generate contexts and targets based on the random indexes from above
+    context_stack = torch.stack([batch_data[num: num + context_length] for num in rand_indexes])
+    target_stack = torch.stack([batch_data[num + 1: num + context_length + 1] for num in rand_indexes])
+    return context_stack, target_stack
 
 
-xb, yb = get_batch('training')
-print(xb.shape)
-print(xb)
-print(yb.shape)
-print(yb)
+# xb, yb = get_batch('training')
+# print(xb.shape)
+# print(xb)
+# print(yb.shape)
+# print(yb)
+
+# make 2000 training batches
+contexts = []
+for i in range(4):
+    contexts.append(get_batch('training'))
+
+# print('contextexs: \n\n\n' ,contexts)
+
+
+# make numpy arrays filled with zeroes for the contexts and targets
+def make_np_array():
+    contexts_np_array = np.zeros((len(contexts), context_length, len(vocabulary)), dtype=np.bool_)
+    targets_np_array = np.zeros((len(contexts), context_length, len(vocabulary)), dtype=np.bool_)
+    return contexts_np_array, targets_np_array
+
+
+# populate the arrays
+def populate(batch):
+    contexts_array, targets_array = make_np_array()
+    keys = list(int_to_char.keys())
+    print(keys)
+    print(contexts_array)
+    torch.set_printoptions(profile='full')
+    print(contexts_array[0][0])
+    print(batch[0])
+    count_a = 0
+    for context in batch[0]:
+        count_b = 0
+        for integer in context:
+            index = keys.index(integer)
+            contexts_array[count_a][count_b][index] = 1
+            count_b += 1
+        count_a += 1
+
+    count_a = 0
+    for target in batch[1]:
+        count_b = 0
+        for integer in target:
+            index = keys.index(integer)
+            targets_array[count_a][count_b][index] = 1
+            count_b += 1
+        count_a += 1
+
+    return contexts_array, targets_array
+
+
+print(int_to_char)
+print()
+print()
+print('test')
+torch.set_printoptions(threshold=10_000)
+print(populate(get_batch('training'))[0][0])
+
+
 

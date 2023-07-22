@@ -108,28 +108,33 @@ def get_batch(split):
 
 # make 2000 training batches
 contexts = []
-for i in range(4):
+for i in range(10):
     contexts.append(get_batch('training'))
-
-# print('contextexs: \n\n\n' ,contexts)
 
 
 # make numpy arrays filled with zeroes for the contexts and targets
-def make_np_array():
-    contexts_np_array = np.zeros((len(contexts), context_length, len(vocabulary)), dtype=np.bool_)
-    targets_np_array = np.zeros((len(contexts), context_length, len(vocabulary)), dtype=np.bool_)
+def make_np_array(batch_length):
+    contexts_np_array = np.zeros((batch_length, context_length, len(vocabulary)), dtype=np.bool_)
+    targets_np_array = np.zeros((batch_length, context_length, len(vocabulary)), dtype=np.bool_)
     return contexts_np_array, targets_np_array
 
 
 # populate the arrays
+'''
+    batch: is a torch.stack of two 2D tensors. They are contexts and targets tensors respectively.
+    contexts_array, targets_array: are two numpy zeros arrays that are populated with True or False based on the 
+                                   tensors in the batch. They each contain a 3D matrix of all possible values 
+                                   that a character could be. The populate function updates the corresponding
+                                   positions in these matrices based on the values in the batch tensors.
+'''
+
+
 def populate(batch):
-    contexts_array, targets_array = make_np_array()
+    contexts_array, targets_array = make_np_array(len(batch[0]))
     keys = list(int_to_char.keys())
-    print(keys)
-    print(contexts_array)
     torch.set_printoptions(profile='full')
-    print(contexts_array[0][0])
-    print(batch[0])
+
+    # count_a, count_b and index will track the 1st, 2nd and 3rd dimensions of the matrix respectively
     count_a = 0
     for context in batch[0]:
         count_b = 0
@@ -139,6 +144,7 @@ def populate(batch):
             count_b += 1
         count_a += 1
 
+    # reset local variables and do the same for the targets
     count_a = 0
     for target in batch[1]:
         count_b = 0
@@ -151,9 +157,6 @@ def populate(batch):
     return contexts_array, targets_array
 
 
-print(int_to_char)
-print()
-print()
 print('test')
 torch.set_printoptions(threshold=10_000)
 print(populate(get_batch('training'))[0][0])

@@ -1,6 +1,7 @@
 import torch
 import numpy as np
 
+
 # read data from dataset
 with open('assets/fairytale_dataset.txt', 'r', encoding='utf-8') as dataset:
     data = dataset.read()
@@ -47,14 +48,8 @@ validation_data = data_tensor[divider:]
     [ 1, 2 ]. This goes on until the context is [ 1, 2, 3, 4, 5 ] (i.e the length of the context only goes up to the  
     context_length). 
 '''
-context_length = 5
-x = training_data[:context_length]
-y = training_data[1:context_length + 1]
-# for i in range(context_length):
-#     context = x[:i + 1]
-#     target = y[i]
-# print('ccc', context)
-# print('ttt', target)
+CONTEXT_LENGTH = 5
+
 
 # batch dimensioning
 '''
@@ -92,19 +87,13 @@ def get_batch(split):
     # generate random indexes from 0 to length of batch_data - context_size
     # subtracting context_length because if we get an index where the remaining characters are not up to the
     # context_length then the neural net cannot predict the next character
-    rand_indexes = torch.randint(len(batch_data) - context_length, (batch_size,))
+    rand_indexes = torch.randint(len(batch_data) - CONTEXT_LENGTH, (batch_size,))
 
     # generate contexts and targets based on the random indexes from above
-    context_stack = torch.stack([batch_data[num: num + context_length] for num in rand_indexes])
-    target_stack = torch.stack([batch_data[num + 1: num + context_length + 1] for num in rand_indexes])
+    context_stack = torch.stack([batch_data[num: num + CONTEXT_LENGTH] for num in rand_indexes])
+    target_stack = torch.stack([batch_data[num + 1: num + CONTEXT_LENGTH + 1] for num in rand_indexes])
     return context_stack, target_stack
 
-
-# xb, yb = get_batch('training')
-# print(xb.shape)
-# print(xb)
-# print(yb.shape)
-# print(yb)
 
 # make 2000 training batches
 contexts = []
@@ -114,14 +103,14 @@ for i in range(10):
 
 # make numpy arrays filled with zeroes for the contexts and targets
 def make_np_array(batch_length):
-    contexts_np_array = np.zeros((batch_length, context_length, len(vocabulary)), dtype=np.bool_)
-    targets_np_array = np.zeros((batch_length, context_length, len(vocabulary)), dtype=np.bool_)
+    contexts_np_array = np.zeros((batch_length, CONTEXT_LENGTH, len(vocabulary)), dtype=np.bool_)
+    targets_np_array = np.zeros((batch_length, CONTEXT_LENGTH, len(vocabulary)), dtype=np.bool_)
     return contexts_np_array, targets_np_array
 
 
 # populate the arrays
 '''
-    batch: is a torch.stack of two 2D tensors. They are contexts and targets tensors respectively.
+    batch: is a torch.stack of two 2D tensors of identical shape. They are contexts and targets tensors respectively.
     contexts_array, targets_array: are two numpy zeros arrays that are populated with True or False based on the 
                                    tensors in the batch. They each contain a 3D matrix of all possible values 
                                    that a character could be. The populate function updates the corresponding

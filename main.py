@@ -1,5 +1,9 @@
 import torch
 import numpy as np
+import tensorflow as tf
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import LSTM, Dense, Activation
+from tensorflow.keras.optimizers import RMSprop
 
 
 # read data from dataset
@@ -75,7 +79,7 @@ CONTEXT_LENGTH = 5
                     [102, 117, 115, 101, 100,  32, 116, 111],
                     [100,  32,  98, 101, 101, 110,  32, 101]])
 '''
-batch_size = 4
+BATCH_SIZE = 4
 
 
 def get_batch(split):
@@ -87,7 +91,7 @@ def get_batch(split):
     # generate random indexes from 0 to length of batch_data - context_size
     # subtracting context_length because if we get an index where the remaining characters are not up to the
     # context_length then the neural net cannot predict the next character
-    rand_indexes = torch.randint(len(batch_data) - CONTEXT_LENGTH, (batch_size,))
+    rand_indexes = torch.randint(len(batch_data) - CONTEXT_LENGTH, (BATCH_SIZE,))
 
     # generate contexts and targets based on the random indexes from above
     context_stack = torch.stack([batch_data[num: num + CONTEXT_LENGTH] for num in rand_indexes])
@@ -96,9 +100,9 @@ def get_batch(split):
 
 
 # make 2000 training batches
-contexts = []
+batches = []
 for i in range(10):
-    contexts.append(get_batch('training'))
+    batches.append(get_batch('training'))
 
 
 # make numpy arrays filled with zeroes for the contexts and targets
@@ -151,4 +155,12 @@ torch.set_printoptions(threshold=10_000)
 print(populate(get_batch('training'))[0][0])
 
 
+# Building the Neural Net
+model = Sequential()
+model.add(LSTM(128, input_shape=(CONTEXT_LENGTH, len(vocabulary))))
+model.add(Dense(len(vocabulary)))
+model.add(Activation('softmax'))
+
+model.compile(loss='categorical_crossentropy', optimizer=RMSprop(lr=0.01))
+model.fit()
 

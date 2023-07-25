@@ -57,7 +57,7 @@ CONTEXT_LENGTH = 5
 
 # batch dimensioning
 '''
-    This part determines how many instances of the data will be fed into the transformer at a time.
+    This part determines how many instances of the data will be fed into the model at a time.
     x and y are like 2d arrays
     
     batch_size: how many instances will be processed in parallel
@@ -79,10 +79,9 @@ CONTEXT_LENGTH = 5
                     [102, 117, 115, 101, 100,  32, 116, 111],
                     [100,  32,  98, 101, 101, 110,  32, 101]])
 '''
-BATCH_SIZE = 4
 
 
-def get_batch(split):
+def get_batch(split, size):
     if split == 'training':
         batch_data = training_data
     else:
@@ -91,24 +90,24 @@ def get_batch(split):
     # generate random indexes from 0 to length of batch_data - context_size
     # subtracting context_length because if we get an index where the remaining characters are not up to the
     # context_length then the neural net cannot predict the next character
-    rand_indexes = torch.randint(len(batch_data) - CONTEXT_LENGTH, (BATCH_SIZE,))
+    rand_indexes = torch.randint(len(batch_data) - CONTEXT_LENGTH, (size,))
 
     # generate contexts and targets based on the random indexes from above
     context_stack = torch.stack([batch_data[num: num + CONTEXT_LENGTH] for num in rand_indexes])
-    target_stack = torch.stack([batch_data[num + 1: num + CONTEXT_LENGTH + 1] for num in rand_indexes])
+    target_stack = torch.stack([batch_data[num + CONTEXT_LENGTH] for num in rand_indexes])
     return context_stack, target_stack
 
 
 # make 2000 training batches
-batches = []
-for i in range(10):
-    batches.append(get_batch('training'))
+# batches = []
+# for i in range(10):
+#     batches.append(get_batch('training'))
 
 
 # make numpy arrays filled with zeroes for the contexts and targets
 def make_np_array(batch_length):
     contexts_np_array = np.zeros((batch_length, CONTEXT_LENGTH, len(vocabulary)), dtype=np.bool_)
-    targets_np_array = np.zeros((batch_length, CONTEXT_LENGTH, len(vocabulary)), dtype=np.bool_)
+    targets_np_array = np.zeros((batch_length, len(vocabulary)), dtype=np.bool_)
     return contexts_np_array, targets_np_array
 
 
@@ -125,7 +124,11 @@ def make_np_array(batch_length):
 def populate(batch):
     contexts_array, targets_array = make_np_array(len(batch[0]))
     keys = list(int_to_char.keys())
-    torch.set_printoptions(profile='full')
+    # print(keys)
+    # torch.set_printoptions(profile='full')
+    # print('\n\n\n\n\n')
+    # print(batch)
+    # print('\n\n\n\n\n')
 
     # count_a, count_b and index will track the 1st, 2nd and 3rd dimensions of the matrix respectively
     count_a = 0
@@ -135,32 +138,43 @@ def populate(batch):
             index = keys.index(integer)
             contexts_array[count_a][count_b][index] = 1
             count_b += 1
-        count_a += 1
 
-    # reset local variables and do the same for the targets
-    count_a = 0
-    for target in batch[1]:
-        count_b = 0
-        for integer in target:
-            index = keys.index(integer)
-            targets_array[count_a][count_b][index] = 1
-            count_b += 1
+        index = keys.index(batch[1][count_a])
+        print('index: ', index)
+        targets_array[count_a][index] = 1
         count_a += 1
 
     return contexts_array, targets_array
 
 
-print('test')
-torch.set_printoptions(threshold=10_000)
-print(populate(get_batch('training'))[0][0])
+# print('test')
+# print(int_to_char)
+# torch.set_printoptions(profile='full')
+# print(populate(get_batch('training', 2)))
 
 
-# Building the Neural Net
+# Make contexts and targets to feed to the neural net
+def produce_training_set(number):
+    t_set = get_batch('training', number)
+    return populate(t_set)
+
+
+# make a set of 20000 contexts and targets
+contexts, targets = produce_training_set(20000)
+
+# Assembling the Neural Network
 model = Sequential()
 model.add(LSTM(128, input_shape=(CONTEXT_LENGTH, len(vocabulary))))
 model.add(Dense(len(vocabulary)))
 model.add(Activation('softmax'))
 
-model.compile(loss='categorical_crossentropy', optimizer=RMSprop(lr=0.01))
-model.fit()
+model.compile(loss='categorical_crossentropy', optimizer=RMSprop(learning_rate=0.01))
+model.fit(contexts, targets, batch_size=256, epochs=4)
+
+model.save('assets/fairytaleAiV1-20000.model')
+
+# def main():
+#     produce_training_set(20000)
+
+
 

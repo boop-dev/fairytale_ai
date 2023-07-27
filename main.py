@@ -1,3 +1,4 @@
+import random
 import torch
 import numpy as np
 import tensorflow as tf
@@ -52,7 +53,7 @@ validation_data = data_tensor[divider:]
     [ 1, 2 ]. This goes on until the context is [ 1, 2, 3, 4, 5 ] (i.e the length of the context only goes up to the  
     context_length). 
 '''
-CONTEXT_LENGTH = 5
+CONTEXT_LENGTH = 50
 
 
 # batch dimensioning
@@ -124,11 +125,6 @@ def make_np_array(batch_length):
 def populate(batch):
     contexts_array, targets_array = make_np_array(len(batch[0]))
     keys = list(int_to_char.keys())
-    # print(keys)
-    # torch.set_printoptions(profile='full')
-    # print('\n\n\n\n\n')
-    # print(batch)
-    # print('\n\n\n\n\n')
 
     # count_a, count_b and index will track the 1st, 2nd and 3rd dimensions of the matrix respectively
     count_a = 0
@@ -140,7 +136,7 @@ def populate(batch):
             count_b += 1
 
         index = keys.index(batch[1][count_a])
-        print('index: ', index)
+        # print('index: ', index)
         targets_array[count_a][index] = 1
         count_a += 1
 
@@ -159,22 +155,75 @@ def produce_training_set(number):
     return populate(t_set)
 
 
-# make a set of 20000 contexts and targets
-contexts, targets = produce_training_set(20000)
+# # make a set of 20000 contexts and targets
+# contexts, targets = produce_training_set(100000)
+# #
+# # Assembling the Neural Network
+# model = Sequential()
+# model.add(LSTM(128, input_shape=(CONTEXT_LENGTH, len(vocabulary))))
+# model.add(Dense(len(vocabulary)))
+# model.add(Activation('softmax'))
+#
+# model.compile(loss='categorical_crossentropy', optimizer=RMSprop(learning_rate=0.01))
+# model.fit(contexts, targets, batch_size=256, epochs=4)
+#
+# model.save('assets/fairytaleAiV2-100000.model')
 
-# Assembling the Neural Network
-model = Sequential()
-model.add(LSTM(128, input_shape=(CONTEXT_LENGTH, len(vocabulary))))
-model.add(Dense(len(vocabulary)))
-model.add(Activation('softmax'))
 
-model.compile(loss='categorical_crossentropy', optimizer=RMSprop(learning_rate=0.01))
-model.fit(contexts, targets, batch_size=256, epochs=4)
+model = tf.keras.models.load_model('assets/fairytaleAiV2-100000.model')
 
-model.save('assets/fairytaleAiV1-20000.model')
 
-# def main():
-#     produce_training_set(20000)
+# function from keras library
+# def sample(predictions, temperature=1.0):
+#     predictions = np.asarray(predictions).astype('float64')
+#     predictions = np.log(predictions)/temperature
+#     exp_predictions = np.exp(predictions)
+#     predictions = exp_predictions/np.sum(exp_predictions)
+#     probs = np.random.multinomial(1, predictions, 1)
+#     return np.argmax(probs)
+
+def sample(predictions, temperature=1.0):
+    predictions = np.asarray(predictions).astype('float64')
+    predictions = np.log(predictions) / temperature
+    exp_predictions = np.exp(predictions)
+    probabilities = exp_predictions / np.sum(exp_predictions)
+    choices = list(int_to_char.keys())
+    return np.random.choice(choices, p=probabilities)
+
+
+def generate_text(length, temperature):
+    generated_text = ''
+    start_index = random.randint(0, len(data) - CONTEXT_LENGTH-1)
+    starting_context = data[start_index: start_index + CONTEXT_LENGTH]
+    generated_text += starting_context
+    print('sc: ', starting_context)
+
+    keys = list(int_to_char.keys())
+    count = 0
+    for i in range(length):
+        x = np.zeros((1, CONTEXT_LENGTH, len(vocabulary)))
+        for j, char in enumerate(starting_context):
+            index = keys.index(char_to_int[char])
+            x[0, j, index] = 1
+
+            predictions = model.predict(x, verbose=0)[0]
+            next_index = sample(predictions, temperature)
+            count += 1
+            next_char = int_to_char[next_index.item()]
+            generated_text += next_char
+            starting_context = starting_context[1:] + next_char
+
+        print(count)
+
+    return generated_text
+
+
+print(int_to_char)
+print('------generated------')
+print(generate_text(10, 0.2))
+
+
+
 
 
 

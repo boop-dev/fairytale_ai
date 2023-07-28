@@ -95,7 +95,9 @@ def get_batch(split, size):
 
     # generate contexts and targets based on the random indexes from above
     context_stack = torch.stack([batch_data[num: num + CONTEXT_LENGTH] for num in rand_indexes])
+    print('finished context stack')
     target_stack = torch.stack([batch_data[num + CONTEXT_LENGTH] for num in rand_indexes])
+    print('finished target stack')
     return context_stack, target_stack
 
 
@@ -123,6 +125,7 @@ def make_np_array(batch_length):
 
 
 def populate(batch):
+    print('populating')
     contexts_array, targets_array = make_np_array(len(batch[0]))
     keys = list(int_to_char.keys())
 
@@ -138,6 +141,7 @@ def populate(batch):
         index = keys.index(batch[1][count_a])
         # print('index: ', index)
         targets_array[count_a][index] = 1
+        print('populated count: ', count_a)
         count_a += 1
 
     return contexts_array, targets_array
@@ -151,26 +155,29 @@ def populate(batch):
 
 # Make contexts and targets to feed to the neural net
 def produce_training_set(number):
+    print('--------------getting batches--------------')
     t_set = get_batch('training', number)
     return populate(t_set)
 
 
-# # make a set of 20000 contexts and targets
+# # make a set of contexts and targets
 # contexts, targets = produce_training_set(100000)
-# #
+#
 # # Assembling the Neural Network
 # model = Sequential()
 # model.add(LSTM(128, input_shape=(CONTEXT_LENGTH, len(vocabulary))))
 # model.add(Dense(len(vocabulary)))
 # model.add(Activation('softmax'))
 #
-# model.compile(loss='categorical_crossentropy', optimizer=RMSprop(learning_rate=0.01))
+# model.compile(loss='categorical_crossentropy', optimizer=RMSprop(learning_rate=0.01), metrics=["accuracy"])
 # model.fit(contexts, targets, batch_size=256, epochs=4)
 #
-# model.save('assets/fairytaleAiV2-100000.model')
+# model.save('assets/fairytaleAiV3-1000000.model')
 
 
-model = tf.keras.models.load_model('assets/fairytaleAiV2-100000.model')
+model = tf.keras.models.load_model('assets/fairytaleAiV3-1000000-V2.model')
+# model.fit(contexts, targets, epochs=200, batch_size=128)
+# model.save('assets/fairytaleAiV3-1000000-V2.model')
 
 
 # function from keras library
@@ -199,7 +206,7 @@ def generate_text(length, temperature):
     print('sc: ', starting_context)
 
     keys = list(int_to_char.keys())
-    count = 0
+    # count = 0
     for i in range(length):
         x = np.zeros((1, CONTEXT_LENGTH, len(vocabulary)))
         for j, char in enumerate(starting_context):
@@ -208,19 +215,19 @@ def generate_text(length, temperature):
 
             predictions = model.predict(x, verbose=0)[0]
             next_index = sample(predictions, temperature)
-            count += 1
+            # count += 1
             next_char = int_to_char[next_index.item()]
             generated_text += next_char
             starting_context = starting_context[1:] + next_char
 
-        print(count)
+        # print(count)
 
     return generated_text
 
 
-print(int_to_char)
-print('------generated------')
-print(generate_text(10, 0.2))
+# print(int_to_char)
+print('------generating------')
+print(generate_text(10, 0.8))
 
 
 

@@ -36,7 +36,7 @@ CONTEXT_LENGTH = 10
 contexts = []
 targets = []
 
-populate the contexts and targets arrays
+# populate the contexts and targets arrays
 for t in range(len(tokens) - CONTEXT_LENGTH):
     contexts.append(tokens[t:t + CONTEXT_LENGTH])
     targets.append(tokens[t + CONTEXT_LENGTH])
@@ -54,7 +54,7 @@ for i, words in enumerate(contexts):
     targets_np_array[i, token_indexes[targets[i]]] = 1
 
 
-Assembling the Neural Network
+# Assembling the Neural Network
 model = Sequential()
 model.add(LSTM(128, input_shape=(CONTEXT_LENGTH, len(unique_tokens)), return_sequences=True))
 model.add(LSTM(128))
